@@ -41,15 +41,6 @@ first	^ self values isEmpty ifFalse: [self values first]!
 last
 	^ self values isEmpty ifFalse: [self values last]!
 
-publishedAspects
-	"Answer a <LookupTable> of the <Aspect>s published by the receiver."
-
-	| aspects |
-	aspects := self class publishedAspectsOfInstances.
-	self columnNames 
-		do: [:each | aspects add: ((self at: each) newAspect: each class: KeyedAspect)].
-	^aspects!
-
 size	^ self columnNames size!
 
 values	 ^values ifNil: [ #() ]!
@@ -71,7 +62,6 @@ dataCount!accessing!public! !
 doesNotUnderstand:!public!reflective operations! !
 first!accessing!public! !
 last!accessing!public! !
-publishedAspects!development!must strip!public! !
 size!accessing!public! !
 values!accessing!public! !
 values:!accessing!public! !

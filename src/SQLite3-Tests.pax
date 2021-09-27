@@ -1,8 +1,8 @@
 ﻿| package |
-package := Package name: 'SQLite3-Core-Tests'.
+package := Package name: 'SQLite3-Tests'.
 package paxVersion: 1;
 	basicComment: 'SQLite3 native interface for Dolphin Smalltalk
-rko281/Dolphin-SQLite3
+rko281/SQLite3
 
 Based on Pharo-SQLite3
 pharo-rdbms/Pharo-SQLite3'.

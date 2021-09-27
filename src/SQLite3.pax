@@ -8,6 +8,10 @@ Based on Pharo-SQLite3
 pharo-rdbms/Pharo-SQLite3'.
 
 
+package methodNames
+	add: #SQLite3Row -> #publishedAspects;
+	yourself.
+
 package binaryGlobalNames: (Set new
 	yourself).
 
@@ -15,12 +19,12 @@ package globalAliases: (Set new
 	yourself).
 
 package setPrerequisites: #(
+	'..\Core\Object Arts\Dolphin\IDE\Base\Development System'
 	'SQLite3-Core'
-	'SQLite3-Core-Tests').
+	'SQLite3-Tests').
 
 package setManualPrerequisites: #(
-	'SQLite3-Core'
-	'SQLite3-Core-Tests').
+	'SQLite3-Tests').
 
 package!
 
@@ -31,6 +35,20 @@ package!
 
 
 "Loose Methods"!
+
+!SQLite3Row methodsFor!
+
+publishedAspects
+	"Answer a <LookupTable> of the <Aspect>s published by the receiver."
+
+	| aspects |
+	aspects := self class publishedAspectsOfInstances.
+	self columnNames 
+		do: [:each | aspects add: ((self at: each) newAspect: each class: KeyedAspect)].
+	^aspects! !
+!SQLite3Row categoriesForMethods!
+publishedAspects!development!must strip!public! !
+!
 
 "End of package definition"!
 

@@ -2,7 +2,7 @@
 package := Package name: 'SQLite3-Core'.
 package paxVersion: 1;
 	basicComment: 'SQLite3 native interface for Dolphin Smalltalk
-rko281/Dolphin-SQLite3
+rko281/SQLite3
 
 Based on Pharo-SQLite3
 pharo-rdbms/Pharo-SQLite3'.
@@ -118,10 +118,8 @@ package globalAliases: (Set new
 	yourself).
 
 package setPrerequisites: #(
-	'..\Core\Object Arts\Dolphin\IDE\Base\Development System'
 	'..\Core\Object Arts\Dolphin\Base\Dolphin'
-	'..\Core\Object Arts\Dolphin\Base\Dolphin Legacy Date & Time'
-	'..\Core\Contributions\svenc\STON\STON-Core').
+	'..\Core\Object Arts\Dolphin\Base\Dolphin Legacy Date & Time').
 
 package!
 

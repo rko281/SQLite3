@@ -269,7 +269,7 @@ reset: aStatementHandle		^ aStatementHandle 		ifNil: [ 0 ]		ifNotNil: [ self
 
 signal: exceptionClass with: value on: aSQLite3ExternalObject	(exceptionClass new)		resultCode: value; 		signal: (self apiErrorMessage: aSQLite3ExternalObject)!
 
-sqlite3ResultFor: anInteger ifNoneMatch: aBlock	^[ 		SQLite3Result forNativeResultCode: anInteger	] on: NotFound do: aBlock!
+sqlite3ResultFor: anInteger ifNoneMatch: aBlock	^[ 		SQLite3Result forNativeResultCode: anInteger	] on: NotFoundError do: aBlock!
 
 sqlText: aStatementHandle		^ self apiSql: aStatementHandle	!
 
