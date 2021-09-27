@@ -1,0 +1,36 @@
+﻿| package |
+package := Package name: 'SQLite3'.
+package paxVersion: 1;
+	basicComment: 'SQLite3 native interface for Dolphin Smalltalk
+rko281/SQLite3
+
+Based on Pharo-SQLite3
+pharo-rdbms/Pharo-SQLite3'.
+
+
+package binaryGlobalNames: (Set new
+	yourself).
+
+package globalAliases: (Set new
+	yourself).
+
+package setPrerequisites: #(
+	'SQLite3-Core'
+	'SQLite3-Core-Tests').
+
+package setManualPrerequisites: #(
+	'SQLite3-Core'
+	'SQLite3-Core-Tests').
+
+package!
+
+"Class Definitions"!
+
+
+"Global Aliases"!
+
+
+"Loose Methods"!
+
+"End of package definition"!
+

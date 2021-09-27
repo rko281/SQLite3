@@ -1,0 +1,56 @@
+﻿| package |
+package := Package name: 'SQLite3-Core-Tests'.
+package paxVersion: 1;
+	basicComment: 'SQLite3 native interface for Dolphin Smalltalk
+rko281/Dolphin-SQLite3
+
+Based on Pharo-SQLite3
+pharo-rdbms/Pharo-SQLite3'.
+
+
+package classNames
+	add: #SQLite3RowTest;
+	add: #SQLiteBaseConnectionTest;
+	add: #SQLiteConnectionTest;
+	yourself.
+
+package binaryGlobalNames: (Set new
+	yourself).
+
+package globalAliases: (Set new
+	yourself).
+
+package setPrerequisites: #(
+	'..\Core\Object Arts\Dolphin\Base\Dolphin'
+	'..\Core\Object Arts\Dolphin\Base\Dolphin Legacy Date & Time'
+	'..\Core\Object Arts\Dolphin\System\Random\Dolphin Random Stream'
+	'SQLite3-Core'
+	'..\Core\Contributions\Camp Smalltalk\SUnit\SUnit').
+
+package!
+
+"Class Definitions"!
+
+TestCase subclass: #SQLite3RowTest
+	instanceVariableNames: 'filledRow emptyRow'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+TestCase subclass: #SQLiteBaseConnectionTest
+	instanceVariableNames: 'db res'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+TestCase subclass: #SQLiteConnectionTest
+	instanceVariableNames: 'db res rs target'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+
+"Global Aliases"!
+
+
+"Loose Methods"!
+
+"End of package definition"!
+
