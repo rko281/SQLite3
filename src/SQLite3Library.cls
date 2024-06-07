@@ -1,4 +1,4 @@
-﻿"Filed out from Dolphin Smallalk"!
+﻿"Filed out from Dolphin Smalltalk"!
 
 ExternalLibrary subclass: #SQLite3Library
 	instanceVariableNames: ''
@@ -216,7 +216,19 @@ bindParameterIndex: aStatementHandle for: aName	^ self apiBindParameterIndex: a
 
 blobFrom: aStatement at: aColumn	| address size array |		address := self apiColumnBlob: aStatement atColumn: aColumn.	size := self apiColumnBytes: aStatement atColumn: aColumn.	array := address copyFrom: 1 to: size.	^array 	 !
 
-booleanFrom: aStatement at: aColumn	| declared selector value |		declared := self apiColumnDeclaredType: aStatement atColumn: aColumn.	(self class booleanTypes includes: declared asLowercase) ifFalse: [ 		SQLite3AbstractError signal: 'Column is not declared as a boolean.' ].	selector := DataTypeMap at: (self apiColumnType: aStatement atColumn: aColumn).	(selector = #nilAt:) ifTrue: [ ^ nil ].	(selector = #stringAt:) 		ifTrue: [			value := self apiColumnText: aStatement atColumn: aColumn.			(self class booleanSQLTrueWords includes: value asLowercase) 				ifTrue: [ ^ true ]				ifFalse: [					(self class booleanSQLFalseWords includes: value asLowercase)						ifTrue: [ ^ false ]						ifFalse: [ SQLite3AbstractError signal: 'Column value cannot be read as a boolean.' ]]].	(selector = #integerAt:) 		ifTrue: [			value := self apiColumnInt: aStatement atColumn: aColumn.			(value = 1)				ifTrue: [ ^ true ]				ifFalse: [ 					(value = 0) 						ifTrue: [ ^ false ]						ifFalse: [ SQLite3AbstractError signal: 'Column value cannot be read as a boolean.' ]]]	  !
+booleanFrom: aStatement at: aColumn
+
+	| declared type |
+
+	declared := self apiColumnDeclaredType: aStatement atColumn: aColumn.
+	(self class booleanTypes includes: declared asLowercase) ifFalse: [^SQLite3AbstractError signal: 'Column value cannot be read as a boolean.'].
+
+	type := self apiColumnType: aStatement atColumn: aColumn.
+	type = SQLITE_NULL ifTrue: [^nil].	
+
+	^type= SQLITE_INTEGER
+		ifTrue: [self integerBooleanFrom: aStatement at: aColumn]
+		ifFalse: [self stringBooleanFrom: aStatement at: aColumn]!
 
 changes: aHandle		^ self apiChanges: aHandle	!
 
@@ -244,6 +256,13 @@ finalize: aStatementHandle on: aDBHandle
 floatFrom: aStatement at: aColumn	^ self apiColumnDouble: aStatement atColumn: aColumn!
 
 getAutoCommit: aHandle	^ (self apiGetAutocommit: aHandle) ~= 0!
+
+integerBooleanFrom: aStatement at: aColumn	
+	| value |
+
+	^(value := self apiColumnInt: aStatement atColumn: aColumn) = 1
+		ifTrue: [true]
+		ifFalse: [value = 0 ifTrue: [false] ifFalse: [ SQLite3AbstractError signal: 'Column value cannot be read as a boolean.' ]]  !
 
 integerFrom: aStatement at: aColumn	^ self apiColumnInt: aStatement atColumn: aColumn!
 
@@ -277,6 +296,16 @@ statementReadOnly: aSQLite3StatementExternalObject	"int sqlite3_stmt_readonly(s
 
 step: aStatementHandle		^ self apiStep: aStatementHandle	!
 
+stringBooleanFrom: aStatement at: aColumn
+
+	(self apiColumnText: aStatement atColumn: aColumn) ifNotNil: 
+		[ :value |
+		(self class booleanSQLTrueWords includes: value) 
+			ifTrue: [ ^true ]
+			ifFalse: [ (self class booleanSQLFalseWords includes: value) ifTrue: [ ^false ]]].
+
+	SQLite3AbstractError signal: 'Column value cannot be read as a boolean.'!
+
 stringFrom: aStatement at: aColumn
 	^self apiColumnUtf16String: aStatement atColumn: aColumn!
 
@@ -286,13 +315,32 @@ totalChanges: aHandle		^ self apiTotalChanges: aHandle	!
 
 trace: aSQLite3DatabaseExternalObject with: callback with: appdata	^ self apiTrace: aSQLite3DatabaseExternalObject with: callback with: appdata!
 
-typeFor: aStatement at: aColumn	| selector declared |		declared := (self apiColumnDeclaredType: aStatement atColumn: aColumn).	declared notNil ifTrue: [		"Handle column type of boolean as a special case."		(self class booleanTypes includes: declared) ifTrue: [ ^ #booleanAt: ]].		selector := DataTypeMap at: (self apiColumnType: aStatement atColumn: aColumn).	(selector = #stringAt:) ifTrue: [		declared notNil ifTrue: [ 			"Handle column type of date/time as a special case."
-			^DateTimeTypeMap at: declared asLowercase ifAbsent: [ selector ]]].	^ selector!
+typeFor: aStatement at: aColumn
+	| type declared |	
+	type := self apiColumnType: aStatement handle atColumn: aColumn.
 
-typeFor: aStatement at: aColumn declaredType: declared	
-	| selector |
+	"Handle unambiguous types first"
+	type = SQLITE_NULL ifTrue: [^#nilAt:].
+	type = SQLITE_FLOAT ifTrue: [^#floatAt:].
+	type = SQLITE_BLOB ifTrue: [^#byteArrayAt:].
+	
+	"For Integer and String also need to consider the declared type"
+	declared := aStatement declaredTypeOfColumn: aColumn.
+	declared = #undeclared ifTrue: 
+		[^type = SQLITE_INTEGER
+			ifTrue: [#integerAt:]
+			ifFalse: [#stringAt:]].
 
-	declared notNil ifTrue: [		"Handle column type of boolean as a special case."		(self class booleanTypes includes: declared) ifTrue: [ ^ #booleanAt: ]].		selector := DataTypeMap at: (self apiColumnType: aStatement atColumn: aColumn).	(selector = #stringAt:) ifTrue: [		declared notNil ifTrue: [ 			"Handle column type of date/time as a special case."			(self class dateTimeTypes includes: declared) ifTrue: [ ^ #dateTimeAt: ]]].	^ selector!
+	type = SQLITE_INTEGER ifTrue: 
+		[^(self class booleanTypes includes: declared) 
+			ifTrue: [#integerBooleanAt: ]
+			ifFalse: [#integerAt:]].
+
+	"Must be String"
+	type = SQLITE_TEXT ifFalse: [self error: 'unknown type'].
+	"Test for the common case first"
+	('bdtDBT' includes: (declared at: 1)) ifFalse: [^#stringAt:].
+	(self class booleanTypes includes: declared) ifTrue: [ ^ #stringBooleanAt: ].	^DateTimeTypeMap at: declared asLowercase ifAbsent: [ #stringAt: ]!
 
 with: aStatement at: aColumn putBlob: aByteArray	^ self apiBindBlob: aStatement atColumn: aColumn with: aByteArray with: aByteArray size with: -1 !
 
@@ -356,7 +404,7 @@ backupTo:named:from:named:!operating!public! !
 bindParameterCount:!operating!public! !
 bindParameterIndex:for:!operating!public! !
 blobFrom:at:!accessing!public! !
-booleanFrom:at:!accessing!public! !
+booleanFrom:at:!operating!public! !
 changes:!introspection!public! !
 checkForOk:on:!private!private / utilities! !
 clearBindings:on:!cleaning!public! !
@@ -370,6 +418,7 @@ execute:on:!operating!public! !
 finalize:on:!operating!public! !
 floatFrom:at:!accessing!public! !
 getAutoCommit:!accessing!public! !
+integerBooleanFrom:at:!accessing!public! !
 integerFrom:at:!operating!public! !
 lastInsertRowId:!accessing!public! !
 library!private!private / accessing! !
@@ -386,12 +435,12 @@ sqlite3ResultFor:ifNoneMatch:!private!private / utilities! !
 sqlText:!public!stepping! !
 statementReadOnly:!public!stepping! !
 step:!public!stepping! !
+stringBooleanFrom:at:!accessing!public! !
 stringFrom:at:!operating!public! !
 threadsafe!public!stepping! !
 totalChanges:!introspection!public! !
 trace:with:with:!public!tracing! !
 typeFor:at:!private!private / utilities! !
-typeFor:at:declaredType:!private!private / utilities! !
 with:at:putBlob:!operating!public! !
 with:at:putFloat:!operating!public! !
 with:at:putInteger:!operating!public! !

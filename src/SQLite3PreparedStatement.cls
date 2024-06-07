@@ -1,7 +1,7 @@
-﻿"Filed out from Dolphin Smallalk"!
+﻿"Filed out from Dolphin Smalltalk"!
 
 Object subclass: #SQLite3PreparedStatement
-	instanceVariableNames: 'connection handle changes columnNames'
+	instanceVariableNames: 'connection handle changes columnNames columnDeclaredTypes library'
 	classVariableNames: ''
 	poolDictionaries: 'SQLite3Constants'
 	classInstanceVariableNames: ''!
@@ -30,7 +30,7 @@ at: aColumn putDateTime: aDateTime
 
 at: aColumn putFloat: aFloat
 
-	^ self library with: handle at: aColumn putFloat: aFloat asFloat!
+	^ self library with: handle at: aColumn putFloat: aFloat!
 
 at: aColumn putInteger: anInteger	^ self library with: handle at: aColumn putInteger: anInteger!
 
@@ -38,6 +38,10 @@ at: aColumn putNil: anObject	"Goofy interface note - anObject is ignored here."
 
 at: aColumn putObject: anObject
 	^ self library with: handle at: aColumn putBlob: anObject binaryStoreBytes!
+
+at: aColumn putScaledDecimal: aScaledDecimal
+
+	^self at: aColumn putString: aScaledDecimal displayString!
 
 at: aColumn putString: aString	^ self library with: handle at: aColumn putString: aString!
 
@@ -54,7 +58,7 @@ bindParameterCount	^ self library bindParameterCount: handle!
 
 bindParameterIndex: aName	^ self library bindParameterIndex: handle for: aName!
 
-bindParameters: bindings	"A 'variable' or 'parameter' token specifies a placeholder in the expression for a value that is filled in at runtime using the sqlite3_bind() family of C/C++ interfaces. Parameters can take several forms:?NNN		A question mark followed by a number NNN holds a spot for the NNN-th parameter. NNN must be between 1 and SQLITE_MAX_VARIABLE_NUMBER.?		A question mark that is not followed by a number creates a parameter with a number one greater than the largest parameter number already assigned. If this means the parameter number is greater than SQLITE_MAX_VARIABLE_NUMBER, it is an error. This parameter format is provided for compatibility with other database engines. But because it is easy to miscount the question marks, the use of this parameter format is discouraged. Programmers are encouraged to use one of the symbolic formats below or the ?NNN format above instead.:AAAA		A colon followed by an identifier name holds a spot for a named parameter with the name :AAAA. Named parameters are also numbered. The number assigned is one greater than the largest parameter number already assigned. If this means the parameter would be assigned a number greater than SQLITE_MAX_VARIABLE_NUMBER, it is an error. To avoid confusion, it is best to avoid mixing named and numbered parameters.@AAAA		An 'at' sign works exactly like a colon, except that the name of the parameter created is @AAAA.$AAAA		A dollar-sign followed by an identifier name also holds a spot for a named parameter with the name $AAAA. The identifier name in this case can include one or more occurrences of '::' and a suffix enclosed in '(...)' containing any text at all. This syntax is the form of a variable name in the Tcl programming language. The presence of this syntax results from the fact that SQLite is really a Tcl extension that has escaped into the wild.Parameters that are not assigned values using sqlite3_bind() are treated as NULL. The sqlite3_bind_parameter_index() interface can be used to translate a symbolic parameter name into its equivalent numeric index."	((bindings isKindOf: Collection) and: [ bindings isString not ])		ifFalse: [ SQLite3AbstractError				signal: 'Unable to execute SQL on instance of ' , bindings class displayString ].				bindings		keysAndValuesDo: [ :k :v | 			| idx |			k isInteger				ifTrue: [ idx := k ]				ifFalse: [ idx := self bindParameterIndex: k.					idx = 0						ifTrue: [ idx := self bindParameterIndex: '@' , k ].					idx = 0						ifTrue: [ idx := self bindParameterIndex: ':' , k ].					idx = 0						ifTrue: [ idx := self bindParameterIndex: '$' , k ].					(idx = 0 and: [ k allSatisfy: [ :char | char isDigit] ])						ifTrue: [ idx := k asInteger ] ].			idx > 0				ifTrue: [ self perform: (self dataTypeForObject: v) with: idx with: v ] ]!
+bindParameters: bindings	"A 'variable' or 'parameter' token specifies a placeholder in the expression for a value that is filled in at runtime using the sqlite3_bind() family of C/C++ interfaces. Parameters can take several forms:?NNN		A question mark followed by a number NNN holds a spot for the NNN-th parameter. NNN must be between 1 and SQLITE_MAX_VARIABLE_NUMBER.?		A question mark that is not followed by a number creates a parameter with a number one greater than the largest parameter number already assigned. If this means the parameter number is greater than SQLITE_MAX_VARIABLE_NUMBER, it is an error. This parameter format is provided for compatibility with other database engines. But because it is easy to miscount the question marks, the use of this parameter format is discouraged. Programmers are encouraged to use one of the symbolic formats below or the ?NNN format above instead.:AAAA		A colon followed by an identifier name holds a spot for a named parameter with the name :AAAA. Named parameters are also numbered. The number assigned is one greater than the largest parameter number already assigned. If this means the parameter would be assigned a number greater than SQLITE_MAX_VARIABLE_NUMBER, it is an error. To avoid confusion, it is best to avoid mixing named and numbered parameters.@AAAA		An 'at' sign works exactly like a colon, except that the name of the parameter created is @AAAA.$AAAA		A dollar-sign followed by an identifier name also holds a spot for a named parameter with the name $AAAA. The identifier name in this case can include one or more occurrences of '::' and a suffix enclosed in '(...)' containing any text at all. This syntax is the form of a variable name in the Tcl programming language. The presence of this syntax results from the fact that SQLite is really a Tcl extension that has escaped into the wild.Parameters that are not assigned values using sqlite3_bind() are treated as NULL. The sqlite3_bind_parameter_index() interface can be used to translate a symbolic parameter name into its equivalent numeric index."	((bindings isKindOf: Collection) and: [ bindings isString not ])		ifFalse: [ SQLite3AbstractError				signal: 'Unable to execute SQL on instance of ' , bindings class displayString ].				bindings		keysAndValuesDo: [ :k :v | 			| idx |			k isInteger				ifTrue: [ idx := k ]				ifFalse: [ idx := self bindParameterIndex: k.					idx = 0						ifTrue: [ idx := self bindParameterIndex: '@' , k ].					idx = 0						ifTrue: [ idx := self bindParameterIndex: ':' , k ].					idx = 0						ifTrue: [ idx := self bindParameterIndex: '$' , k ].					(idx = 0 and: [ k allSatisfy: [ :char | char isDigit] ])						ifTrue: [ idx := k asInteger ] ].			idx > 0				ifTrue: [ v sqliteBindTo: self at: idx ] ]!
 
 booleanAt: aColumn 	^self library booleanFrom: handle at: aColumn!
 
@@ -68,39 +72,11 @@ clearBindings 	^self library clearBindings: handle on: connection handle!
 
 columnCount	^self library columnCount: handle!
 
+columnDeclaredTypes	^columnDeclaredTypes ifNil: [columnDeclaredTypes := Array new: self columnCount]!
+
 columnNames 	^columnNames ifNil: [ 		columnNames := Array new: self columnCount.		(1 to: columnNames size) do: [ :c | columnNames at: c put: (self nameOfColumn: c - 1) ].		columnNames	].!
 
 connection: anObject	connection := anObject!
-
-dataTypeForObject: anObject	^self dataTypeForObject: anObject ifNone: [ #at:putObject:]!
-
-dataTypeForObject: anObject ifNone: aBlock	anObject ifNil: [ ^ #at:putNil: ].
-
-	( anObject isKindOf: Boolean )
-		ifTrue: [ ^ #at:putBoolean: ].
-
-	( anObject isKindOf: Integer )
-		ifTrue: [ ^ #at:putInteger: ].
-
-	( self isFloatLike: anObject )
-		ifTrue: [ ^ #at:putFloat: ].
-
-	( anObject isKindOf: String )
-		ifTrue: [ ^ #at:putString: ].
-
-	( anObject isKindOf: ByteArray )
-		ifTrue: [ ^ #at:putByteArray: ].
-
-	( anObject isKindOf: DateAndTime )
-		ifTrue: [ ^ #at:putDateTime: ].
-
-	( anObject isKindOf: Time )
-		ifTrue: [ ^ #at:putTime: ].
-
-	( anObject isKindOf: Date )
-		ifTrue: [ ^ #at:putDate: ].
-
-	^ aBlock value!
 
 dataValuesAvailable	^self library dataValuesAvailable: handle!
 
@@ -110,6 +86,16 @@ dateAt: aColumn
 dateTimeAt: aColumn		^ DateAndTime fromString: ( self stringAt: aColumn )!
 
 dbHandle	^(self library dbHandle: handle) !
+
+declaredTypeOfColumn: aColumn
+
+	"aColumn is a zero-based index"
+
+	^(self columnDeclaredTypes at: aColumn + 1) ifNil: 
+		[columnDeclaredTypes at: aColumn + 1 put: 
+			((self library apiColumnDeclaredType: handle atColumn: aColumn) 
+				ifNil: [#undefined]
+				ifNotNil: [ :type | type isEmpty ifTrue: [#undeclared] ifFalse: [type]])]!
 
 execute: bindings 	| result |	self checkOk: self reset.	self clearBindings.	self bindParameters: bindings. 	result := self step.	changes := connection changes.	^SQLite3Cursor on: self!
 
@@ -129,15 +115,16 @@ floatAt: aColumn	^self library floatFrom: handle at: aColumn!
 
 handle	^ handle!
 
-initialize	super initialize.	handle := SQLite3StatementExternalObject new.	handle beFinalizable!
+initialize	super initialize.	handle := SQLite3StatementExternalObject new.	handle beFinalizable.
+	library := SQLite3Library default!
 
 integerAt: aColumn 	^self library integerFrom: handle at: aColumn!
 
-isFloatLike: anObject	^ (anObject isKindOf: Float) or: [ anObject isKindOf: Fraction ]		!
+integerBooleanAt: aColumn 	^self library integerBooleanFrom: handle at: aColumn!
 
 isReadOnly 	^self library statementReadOnly: handle!
 
-library 	^SQLite3Library current!
+library 	^library!
 
 nameOfColumn: aColumn	^ self library nameFor: handle at: aColumn!
 
@@ -160,6 +147,8 @@ stepOk: aValue	"These are normal conditions."		(aValue = SQLITE_ROW or: [aVal
 
 stringAt: aColumn	 	^ self library stringFrom: handle at: aColumn!
 
+stringBooleanAt: aColumn 	^self library stringBooleanFrom: handle at: aColumn!
+
 timeAt: aColumn
 	^ Time fromString: ( self stringAt: aColumn )!
 
@@ -170,7 +159,7 @@ typeOfColumn: aColumn
 
 	"aColumn is a zero-based index"
 
-	^self library typeFor: handle at: aColumn!
+	^self library typeFor: self at: aColumn!
 
 valueOfColumn: aColumn	^ self perform: (self typeOfColumn: aColumn) with: aColumn! !
 !SQLite3PreparedStatement categoriesForMethods!
@@ -182,6 +171,7 @@ at:putFloat:!bindings!public! !
 at:putInteger:!bindings!public! !
 at:putNil:!bindings!public! !
 at:putObject:!bindings!public! !
+at:putScaledDecimal:!bindings!public! !
 at:putString:!bindings!public! !
 at:putTime:!bindings!public! !
 basicExecute:!public! !
@@ -194,21 +184,21 @@ changes!public!public / accessing! !
 checkOk:!private! !
 clearBindings!bindings!public! !
 columnCount!public! !
+columnDeclaredTypes!public!public / accessing! !
 columnNames!public!public / accessing! !
 connection:!private / accessing!public! !
-dataTypeForObject:!bindings!public! !
-dataTypeForObject:ifNone:!bindings!private! !
 dataValuesAvailable!public!public / accessing! !
 dateAt:!fetching!public! !
 dateTimeAt:!fetching!public! !
 dbHandle!private / accessing!public! !
+declaredTypeOfColumn:!fetching!public! !
 execute:!operating!public! !
 finalize!initialization!public! !
 floatAt:!fetching!public! !
 handle!private / accessing!public! !
 initialize!initialization!public! !
 integerAt:!fetching!public! !
-isFloatLike:!private / testing!public! !
+integerBooleanAt:!fetching!public! !
 isReadOnly!public!public / accessing! !
 library!private / accessing!public! !
 nameOfColumn:!fetching!public! !
@@ -220,6 +210,7 @@ sqlText!operating!public! !
 step!public! !
 stepOk:!private! !
 stringAt:!fetching!public! !
+stringBooleanAt:!fetching!public! !
 timeAt:!fetching!public! !
 timestampAt:!fetching!public! !
 typeOfColumn:!fetching!public! !
