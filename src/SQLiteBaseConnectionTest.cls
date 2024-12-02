@@ -1,4 +1,4 @@
-﻿"Filed out from Dolphin Smallalk"!
+﻿"Filed out from Dolphin Smalltalk"!
 
 TestCase subclass: #SQLiteBaseConnectionTest
 	instanceVariableNames: 'db res'
@@ -96,7 +96,7 @@ testScaledDecimal
 	self assert: res equals: 0.
 	
 	s := db prepare: 'insert into x values (NULL, ?)'.
-	s at: 1 putFloat: number.
+	number sqliteBindTo: s at: 1.
 	s step. 		
 	s finalize.	
 	
@@ -105,6 +105,33 @@ testScaledDecimal
 		self assert: (row nameOfColumn: 1) equals: 'xv'.
 		self assert: (row floatAt: 1) equals: float ].
 	s finalize!
+
+testSpeed	| time sampleSize s results  |		res := db basicExecute: 'create table x (xk integer primary key, xr real, xs varchar(128), xb boolean);'.	self assert: res equals: 0.
+
+	sampleSize := 10000.
+	Transcript 
+		cr; 
+		show: 'Writing '; print: sampleSize; show: ' objects... ';
+		show: (time := Time millisecondsToRun: [res := (1 to: sampleSize) collect: [ :i | db basicExecute: 'insert into x (xk,xr,xs,xb) values (<1d>, <2d>, <3p>, <4d>);' << {i. i * 3.14. (String new: 64) atAllPut: (Character asciiValue: (64 + (i \\ 64))); yourself. i odd}]]) displayString;
+		show: ' ms'.
+		self assert: (res allSatisfy: [ :r | r = 0]).
+	s := db prepare: 'select * from x order by xk'.
+	Transcript 
+		cr; 
+		show: 'Reading '; print: sampleSize; show: ' objects... ';
+		show: (time := Time millisecondsToRun: 
+				[s step. results := (SQLite3Cursor on: s) asArray]) displayString;
+		show: ' ms'.
+
+	self assert: results size equals: sampleSize.
+	results keysAndValuesDo: 
+		[ :index :row |
+		self assert: (row values at: 1) equals: index.
+		self assert: (row values at: 2) equals: index * 3.14.
+		self assert: (row values at: 3) first asciiValue equals: (64 + (index \\ 64)).
+		self assert: (row values at: 4) equals: index odd].
+
+	s finalize!
 
 testTableNames	| tables |		res := db basicExecute: 'create table x (xk integer, xv integer);'.	self assert: res equals: 0.	tables := db tableNames.	self assert: tables size equals: 1.	self assert: tables first equals: 'x'!
 
@@ -172,6 +199,7 @@ testPrepareStep!public!tests! !
 testPrepareStepSelective!public!tests! !
 testResultSetColumnIntrospection!public!tests! !
 testScaledDecimal!public!tests / types! !
+testSpeed!public!tests / types! !
 testTableNames!public!tests / tables! !
 testTableNamesOfEmptyDatabase!public!tests / tables! !
 testTime!public!tests / types! !

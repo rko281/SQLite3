@@ -111,6 +111,24 @@ package classNames
 	add: #SQLite3TooBig;
 	yourself.
 
+package methodNames
+	add: #ByteArray -> #sqliteBindTo:at:;
+	add: #Date -> #sqliteBindTo:at:;
+	add: #DateAndTime -> #sqliteBindTo:at:;
+	add: #False -> #sqliteBindTo:at:;
+	add: #Float -> #sqliteBindTo:at:;
+	add: #Fraction -> #sqliteBindTo:at:;
+	add: #GUID -> #sqliteBindTo:at:;
+	add: #Integer -> #sqliteBindTo:at:;
+	add: #Object -> #sqliteBindTo:at:;
+	add: #ScaledDecimal -> #sqliteBindTo:at:;
+	add: #String -> #sqliteBindTo:at:;
+	add: #Time -> #sqliteBindTo:at:;
+	add: #TimeStamp -> #sqliteBindTo:at:;
+	add: #True -> #sqliteBindTo:at:;
+	add: #UndefinedObject -> #sqliteBindTo:at:;
+	yourself.
+
 package binaryGlobalNames: (Set new
 	yourself).
 
@@ -146,7 +164,7 @@ Object subclass: #SQLite3Cursor
 	poolDictionaries: 'SQLite3Constants'
 	classInstanceVariableNames: ''!
 Object subclass: #SQLite3PreparedStatement
-	instanceVariableNames: 'connection handle changes columnNames'
+	instanceVariableNames: 'connection handle changes columnNames columnDeclaredTypes library'
 	classVariableNames: ''
 	poolDictionaries: 'SQLite3Constants'
 	classInstanceVariableNames: ''!
@@ -630,6 +648,141 @@ SQLite3Result subclass: #SQLite3RowResult
 
 
 "Loose Methods"!
+
+!ByteArray methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putByteArray: self! !
+!ByteArray categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!Date methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putDate: self! !
+!Date categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!DateAndTime methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putDateTime: self! !
+!DateAndTime categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!False methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putInteger: 0! !
+!False categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!Float methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putFloat: self! !
+!Float categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!Fraction methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putFloat: self asFloat! !
+!Fraction categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!GUID methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putByteArray: self! !
+!GUID categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!Integer methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putInteger: self! !
+!Integer categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!Object methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putObject: self! !
+!Object categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!ScaledDecimal methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putScaledDecimal: self! !
+!ScaledDecimal categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!String methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putString: self! !
+!String categoriesForMethods!
+sqliteBindTo:at:!double dispatch!private! !
+!
+
+!Time methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putTime: self! !
+!Time categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!TimeStamp methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putTimeStamp: self! !
+!TimeStamp categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!True methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putInteger: 1! !
+!True categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
+
+!UndefinedObject methodsFor!
+
+sqliteBindTo: aStatement at: anInteger
+
+	aStatement at: anInteger putNil: self! !
+!UndefinedObject categoriesForMethods!
+sqliteBindTo:at:!private! !
+!
 
 "End of package definition"!
 

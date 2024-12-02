@@ -1,4 +1,4 @@
-﻿"Filed out from Dolphin Smallalk"!
+﻿"Filed out from Dolphin Smalltalk"!
 
 SQLite3BaseConnection subclass: #SQLite3Connection
 	instanceVariableNames: ''
